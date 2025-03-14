@@ -2,7 +2,9 @@
 import express from "express";
 import ejs from "ejs";
 import mongoose from "mongoose";
-import md5 from "md5";
+import bcrypt from "bcrypt";
+const saltRounds = 10;
+
 const app = express();
 
 app.use(express.json());
@@ -29,7 +31,7 @@ app.get("/", (req, res) => res.render("home"));
 app.get("/login", (req, res) => res.render("login"));
 app.get("/register", (req, res) => res.render("register"));
 app.post("/register", async (req, res) => {
-  const hashed = await md5(req.body.password);
+  const hashed = await bcrypt.hash(req.body.password, saltRounds.password);
   const newUser = new User({
     email: req.body.username,
     password: hashed,
@@ -44,7 +46,6 @@ app.post("/register", async (req, res) => {
 });
 app.post("/login", async (req, res) => {
   const username = req.body.username;
-  const password = md5(req.body.password);
   try {
     const user = await User.findOne({ email: username });
     if (!user) {
@@ -54,7 +55,8 @@ app.post("/login", async (req, res) => {
       console.log("invalid username or password");
       return;
     }
-    if (password===user.password) {
+    const result = bcrypt.compare(req.body.password, user.password);
+    if (result) {
       res.render("secrets");
     } else {
       res
